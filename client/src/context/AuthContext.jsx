@@ -130,18 +130,17 @@ export function AuthProvider({ children }) {
   };
 
   // Выход из аккаунта
-  const signOut = async () => {
-    try {
-      await supabase.auth.signOut();
-    } catch (error) {
+  const signOut = () => {
+    // Выполняем асинхронный запрос в фоне, не дожидаясь его
+    supabase.auth.signOut().catch(error => {
       console.error('Ошибка выхода:', error.message);
-    } finally {
-      // Принудительно очищаем состояние, даже если запрос завершился с ошибкой
-      setUser(null);
-      setRole('student');
-      localStorage.clear();
-      window.location.href = '/login';
-    }
+    });
+    
+    // Принудительно очищаем состояние МОМЕНТАЛЬНО
+    setUser(null);
+    setRole('student');
+    localStorage.clear();
+    window.location.href = '/login';
   };
 
   // Получаем имя пользователя из метаданных Google

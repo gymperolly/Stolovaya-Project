@@ -11,7 +11,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [roleLoading, setRoleLoading] = useState(true);
   const roleCache = useRef({});
-  const fetchPromiseRef = useRef(null);
+  const fetchingRef = useRef(false);
 
   const fetchRole = async (userId) => {
     if (!userId) {
@@ -26,41 +26,22 @@ export function AuthProvider({ children }) {
       return;
     }
 
-    if (fetchPromiseRef.current) {
-      await fetchPromiseRef.current;
-      return;
-    }
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
 
-    const promise = (async () => {
-      try {
-        // Добавляем таймаут-предохранитель на 5 секунд на случай зависания БД (RLS рекурсии)
-        const result = await Promise.race([
-          supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', userId)
-            .maybeSingle(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
-        ]);
-
-        if (result.error) throw result.error;
-
-        const userRole = result.data?.role || 'student';
-        roleCache.current[userId] = userRole;
-        setRole(userRole);
-      } catch (err) {
-        console.error('fetchRole error:', err);
-        if (!role) setRole('student');
-      } finally {
-        setRoleLoading(false);
-      }
-    })();
-
-    fetchPromiseRef.current = promise;
     try {
-      await promise;
+      // Используем RPC функцию для обхода рекурсивной RLS политики
+      const { data, error } = await supabase.rpc('get_my_role');
+      if (error) throw error;
+      const userRole = data || 'student';
+      roleCache.current[userId] = userRole;
+      setRole(userRole);
+    } catch (err) {
+      console.error('fetchRole error:', err);
+      if (!role) setRole('student');
     } finally {
-      fetchPromiseRef.current = null;
+      setRoleLoading(false);
+      fetchingRef.current = false;
     }
   };
 

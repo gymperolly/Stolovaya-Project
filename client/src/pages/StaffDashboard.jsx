@@ -64,36 +64,30 @@ export default function StaffDashboard() {
   const handleStatusUpdate = async (orderId, newStatus) => {
     setUpdatingId(orderId);
 
-    // Immediately update UI (optimistic)
+    // Optimistic update
     setOrders(prev => prev.map(order =>
       order.id === orderId
         ? { ...order, status: newStatus }
         : order
     ));
 
-    try {
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: newStatus })
-        .eq('id', orderId);
+    const { error } = await supabase
+      .from('orders')
+      .update({ status: newStatus })
+      .eq('id', orderId);
 
-      if (error) {
-        // Revert on error
-        console.error('Update failed:', error);
-        setOrders(prev => prev.map(order =>
-          order.id === orderId
-            ? { ...order, status: newStatus === 'ready' ? 'pending' : 'ready' }
-            : order
-        ));
-      }
-    } catch (err) {
-      console.error('Update error:', err);
+    if (error) {
+      console.error('Status update error:', error);
+      // Revert on error
+      setOrders(prev => prev.map(order =>
+        order.id === orderId
+          ? { ...order, status: 'ready' }
+          : order
+      ));
     }
+
     setUpdatingId(null);
   };
-
-  const markAsReady = (orderId) => handleStatusUpdate(orderId, 'ready');
-  const markAsCompleted = (orderId) => handleStatusUpdate(orderId, 'completed');
 
   const formatTime = (dateStr) => {
     return new Date(dateStr).toLocaleTimeString('ru-RU', {
@@ -188,17 +182,17 @@ export default function StaffDashboard() {
                       <span className="font-bold text-gray-800">{order.total_price} ₸</span>
                       <div className="flex gap-2">
                         {order.status === 'pending' && (
-                          <button onClick={() => markAsReady(order.id)}
+                          <button onClick={() => handleStatusUpdate(order.id, 'ready')}
                             disabled={updatingId === order.id}
                             className="bg-green-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-green-600 transition-colors disabled:opacity-50">
-                            {updatingId === order.id ? '...' : '✅ Готово'}
+                            {updatingId === order.id ? '...' : '✅ Готовить'}
                           </button>
                         )}
                         {order.status === 'ready' && (
-                          <button onClick={() => markAsCompleted(order.id)}
+                          <button onClick={() => handleStatusUpdate(order.id, 'completed')}
                             disabled={updatingId === order.id}
                             className="bg-gray-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-gray-600 transition-colors disabled:opacity-50">
-                            {updatingId === order.id ? '...' : '📦 Выдан'}
+                            {updatingId === order.id ? '...' : '📦 Выдать'}
                           </button>
                         )}
                       </div>

@@ -3,10 +3,27 @@ import { useAuth } from '../context/AuthContext';
 import { Navigate } from 'react-router-dom';
 
 export default function LoginPage() {
-  const { user, signInWithGoogle, loading } = useAuth();
+  const { user, signInWithGoogle, roleLoading } = useAuth();
+
+  if (roleLoading) return (
+    <div style={{
+      display: 'flex', justifyContent: 'center',
+      alignItems: 'center', height: '100vh',
+      background: 'white'
+    }}>
+      <div style={{
+        width: '40px', height: '40px',
+        border: '3px solid #F59E0B',
+        borderTop: '3px solid transparent',
+        borderRadius: '50%',
+        animation: 'spin 0.8s linear infinite'
+      }}/>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
 
   // Если пользователь уже авторизован — редирект на главную
-  if (user && !loading) {
+  if (user) {
     return <Navigate to="/" replace />;
   }
 

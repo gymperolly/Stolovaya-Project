@@ -19,6 +19,7 @@ export default function HomePage() {
   const { user, role, getUserName, getUserAvatar, signOut, getAccessToken } = useAuth();
   const [menuItems, setMenuItems] = useState([]);
   const [menuLoaded, setMenuLoaded] = useState(false);
+  const [menuError, setMenuError] = useState(false);
   const [activeCategory, setActiveCategory] = useState('hot');
   const [isLoading, setIsLoading] = useState(true);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -59,7 +60,7 @@ export default function HomePage() {
         .order('created_at', { ascending: true });
       if (error) {
         console.error('Ошибка загрузки меню:', error);
-        setMenuItems(MOCK_ITEMS);
+        setMenuError(true);
       } else {
         setMenuItems(data && data.length > 0 ? data : MOCK_ITEMS);
       }
@@ -178,10 +179,22 @@ export default function HomePage() {
           <p className="text-gray-500 mt-1 text-sm">Что сегодня закажем?</p>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }} className="mb-6">
-          <CategoryTabs activeCategory={activeCategory} onCategoryChange={handleCategoryChange} />
-        </motion.div>
+        {menuError ? (
+          <div style={{ textAlign: 'center', padding: '40px' }}>
+            <p>Не удалось загрузить меню</p>
+            <button onClick={() => window.location.reload()}>
+              Обновить
+            </button>
+            <button onClick={signOut}>
+              Выйти
+            </button>
+          </div>
+        ) : (
+          <>
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }} className="mb-6">
+              <CategoryTabs activeCategory={activeCategory} onCategoryChange={handleCategoryChange} />
+            </motion.div>
 
         {isLoading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -204,11 +217,13 @@ export default function HomePage() {
           </motion.div>
         )}
 
-        {!isLoading && filteredItems.length === 0 && (
-          <div className="text-center py-16">
-            <div className="text-5xl mb-4">😔</div>
-            <p className="text-gray-400 font-medium">В этой категории пока нет блюд</p>
-          </div>
+            {!isLoading && filteredItems.length === 0 && (
+              <div className="text-center py-16">
+                <div className="text-5xl mb-4">😔</div>
+                <p className="text-gray-400 font-medium">В этой категории пока нет блюд</p>
+              </div>
+            )}
+          </>
         )}
       </main>
 

@@ -11,7 +11,8 @@ export default function UserManager() {
     setLoading(true);
     try {
       const token = await getAccessToken();
-      const res = await fetch('/api/admin/users', {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+      const res = await fetch(`${API_URL}/api/admin/users`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
@@ -33,7 +34,8 @@ export default function UserManager() {
     setUpdatingId(userId);
     try {
       const token = await getAccessToken();
-      const res = await fetch(`/api/admin/users/${userId}/role`, {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+      const res = await fetch(`${API_URL}/api/admin/users/${userId}/role`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

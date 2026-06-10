@@ -17,7 +17,8 @@ export default function AdminPanel() {
     setLoading(true);
     try {
       const token = await getAccessToken();
-      const res = await fetch('/api/admin/orders', {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+      const res = await fetch(`${API_URL}/api/admin/orders`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {

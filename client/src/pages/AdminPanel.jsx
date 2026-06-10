@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabaseClient';
 import MenuManager from './MenuManager';
 import UserManager from './UserManager';
 
@@ -13,8 +14,18 @@ export default function AdminPanel() {
   const [stats, setStats] = useState({ total: 0, revenue: 0, pending: 0, ready: 0, completed: 0 });
   const [loading, setLoading] = useState(true);
 
+  // Recalculate stats whenever orders change
+  useEffect(() => {
+    setStats({
+      total: orders.length,
+      revenue: orders.reduce((s, x) => s + (x.total_price || 0), 0),
+      pending: orders.filter(x => x.status === 'pending').length,
+      ready: orders.filter(x => x.status === 'ready').length,
+      completed: orders.filter(x => x.status === 'completed').length,
+    });
+  }, [orders]);
+
   const fetchOrders = async () => {
-    setLoading(true);
     try {
       const token = await getAccessToken();
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
@@ -24,14 +35,6 @@ export default function AdminPanel() {
       if (res.ok) {
         const data = await res.json();
         setOrders(data.orders || []);
-        const o = data.orders || [];
-        setStats({
-          total: o.length,
-          revenue: o.reduce((s, x) => s + (x.total_price || 0), 0),
-          pending: o.filter(x => x.status === 'pending').length,
-          ready: o.filter(x => x.status === 'ready').length,
-          completed: o.filter(x => x.status === 'completed').length,
-        });
       }
     } catch (err) {
       console.error('Ошибка:', err);
@@ -40,10 +43,33 @@ export default function AdminPanel() {
   };
 
   useEffect(() => {
-    if (activeTab === 'overview') {
-      fetchOrders();
-    }
-  }, [activeTab]);
+    // Initial fetch
+    fetchOrders();
+
+    // Realtime subscription
+    const subscription = supabase
+      .channel('admin-orders-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'orders'
+      }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setOrders(prev => [payload.new, ...prev]);
+        }
+        if (payload.eventType === 'UPDATE') {
+          setOrders(prev => prev.map(o =>
+            o.id === payload.new.id ? payload.new : o
+          ));
+        }
+        if (payload.eventType === 'DELETE') {
+          setOrders(prev => prev.filter(o => o.id !== payload.old.id));
+        }
+      })
+      .subscribe();
+
+    return () => supabase.removeChannel(subscription);
+  }, []);
 
   const statCards = [
     { label: 'Всего заказов', value: stats.total, icon: '📋', color: 'from-blue-400 to-blue-600' },

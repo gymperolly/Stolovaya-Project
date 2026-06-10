@@ -4,7 +4,8 @@ import { useAuth } from '../context/AuthContext';
 export default function RoleGuard({ children, allowedRoles }) {
   const { user, role, loading, roleLoading } = useAuth();
 
-  if (loading || (roleLoading && role === null)) {
+  // Show spinner while loading OR while role not yet determined
+  if (loading || roleLoading || role === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-primary-50">
         <div className="flex flex-col items-center gap-4">

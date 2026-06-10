@@ -18,6 +18,7 @@ const MOCK_ITEMS = [
 export default function HomePage() {
   const { user, role, getUserName, getUserAvatar, signOut, getAccessToken } = useAuth();
   const [menuItems, setMenuItems] = useState([]);
+  const [menuLoaded, setMenuLoaded] = useState(false);
   const [activeCategory, setActiveCategory] = useState('hot');
   const [isLoading, setIsLoading] = useState(true);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -49,6 +50,8 @@ export default function HomePage() {
   }, [user]);
 
   useEffect(() => {
+    if (menuLoaded) return;  // don't re-fetch if already loaded
+
     const fetchMenu = async () => {
       setIsLoading(true);
       const { data, error } = await supabase
@@ -60,10 +63,11 @@ export default function HomePage() {
       } else {
         setMenuItems(data && data.length > 0 ? data : MOCK_ITEMS);
       }
+      setMenuLoaded(true);
       setIsLoading(false);
     };
     fetchMenu();
-  }, []);
+  }, [menuLoaded]);
 
   // Проверка статуса активного заказа
   useEffect(() => {

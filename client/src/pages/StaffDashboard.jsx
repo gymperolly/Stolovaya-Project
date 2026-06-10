@@ -33,62 +33,67 @@ export default function StaffDashboard() {
   };
 
   useEffect(() => {
+    // Initial fetch
     fetchOrders();
 
     // Realtime подписка на заказы
     const subscription = supabase
-      .channel('orders_channel')
-      .on('postgres_changes', 
-        { event: '*', schema: 'public', table: 'orders' },
-        (payload) => {
-          console.log('Realtime update:', payload);
-          fetchOrders(); // Обновляем список заказов при любых изменениях
+      .channel('orders-changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'orders'
+      }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setOrders(prev => [payload.new, ...prev]);
         }
-      )
+        if (payload.eventType === 'UPDATE') {
+          setOrders(prev => prev.map(o =>
+            o.id === payload.new.id ? payload.new : o
+          ));
+        }
+        if (payload.eventType === 'DELETE') {
+          setOrders(prev => prev.filter(o => o.id !== payload.old.id));
+        }
+      })
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(subscription);
-    };
+    return () => supabase.removeChannel(subscription);
   }, []);
 
-  const markAsReady = async (orderId) => {
+  const handleStatusUpdate = async (orderId, newStatus) => {
     setUpdatingId(orderId);
+
+    // Immediately update UI (optimistic)
+    setOrders(prev => prev.map(order =>
+      order.id === orderId
+        ? { ...order, status: newStatus }
+        : order
+    ));
+
     try {
-      const token = await getAccessToken();
-      await fetch(`/api/staff/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: 'ready' }),
-      });
-      // fetchOrders() вызовется автоматически через Realtime
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: newStatus })
+        .eq('id', orderId);
+
+      if (error) {
+        // Revert on error
+        console.error('Update failed:', error);
+        setOrders(prev => prev.map(order =>
+          order.id === orderId
+            ? { ...order, status: newStatus === 'ready' ? 'pending' : 'ready' }
+            : order
+        ));
+      }
     } catch (err) {
-      console.error('Ошибка:', err);
+      console.error('Update error:', err);
     }
     setUpdatingId(null);
   };
 
-  const markAsCompleted = async (orderId) => {
-    setUpdatingId(orderId);
-    try {
-      const token = await getAccessToken();
-      await fetch(`/api/staff/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: 'completed' }),
-      });
-      // fetchOrders() вызовется автоматически через Realtime
-    } catch (err) {
-      console.error('Ошибка:', err);
-    }
-    setUpdatingId(null);
-  };
+  const markAsReady = (orderId) => handleStatusUpdate(orderId, 'ready');
+  const markAsCompleted = (orderId) => handleStatusUpdate(orderId, 'completed');
 
   const formatTime = (dateStr) => {
     return new Date(dateStr).toLocaleTimeString('ru-RU', {

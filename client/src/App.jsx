@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import RoleGuard from './components/RoleGuard';
 import LoginPage from './pages/LoginPage';
@@ -7,6 +7,30 @@ import HomePage from './pages/HomePage';
 import OrderConfirmation from './pages/OrderConfirmation';
 import StaffDashboard from './pages/StaffDashboard';
 import AdminPanel from './pages/AdminPanel';
+
+// Protected route component — redirects to /login if not authenticated
+function PrivateRoute({ children }) {
+  const { user, roleLoading } = useAuth();
+
+  if (roleLoading) return (
+    <div style={{
+      display: 'flex', justifyContent: 'center',
+      alignItems: 'center', height: '100vh'
+    }}>
+      <div style={{
+        width: '40px', height: '40px',
+        border: '3px solid #F59E0B',
+        borderTop: '3px solid transparent',
+        borderRadius: '50%',
+        animation: 'spin 0.8s linear infinite'
+      }}/>
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
 
 export default function App() {
   return (
@@ -18,44 +42,36 @@ export default function App() {
             <Route path="/login" element={<LoginPage />} />
 
             {/* Главная — меню */}
-            <Route
-              path="/"
-              element={
-                <RoleGuard allowedRoles={['student', 'staff', 'admin']}>
-                  <HomePage />
-                </RoleGuard>
-              }
-            />
+            <Route path="/" element={
+              <PrivateRoute>
+                <HomePage />
+              </PrivateRoute>
+            } />
 
             {/* Подтверждение заказа */}
-            <Route
-              path="/order/:id"
-              element={
-                <RoleGuard allowedRoles={['student', 'staff', 'admin']}>
-                  <OrderConfirmation />
-                </RoleGuard>
-              }
-            />
+            <Route path="/order/:id" element={
+              <PrivateRoute>
+                <OrderConfirmation />
+              </PrivateRoute>
+            } />
 
             {/* Панель сотрудника (персонал столовой) */}
-            <Route
-              path="/staff"
-              element={
+            <Route path="/staff" element={
+              <PrivateRoute>
                 <RoleGuard allowedRoles={['staff', 'admin']}>
                   <StaffDashboard />
                 </RoleGuard>
-              }
-            />
+              </PrivateRoute>
+            } />
 
             {/* Админ-панель */}
-            <Route
-              path="/admin"
-              element={
+            <Route path="/admin" element={
+              <PrivateRoute>
                 <RoleGuard allowedRoles={['admin']}>
                   <AdminPanel />
                 </RoleGuard>
-              }
-            />
+              </PrivateRoute>
+            } />
 
             {/* Все остальные маршруты → главная */}
             <Route path="*" element={<Navigate to="/" replace />} />

@@ -29,19 +29,32 @@ export function AuthProvider({ children }) {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
 
+    // Hard 3 second timeout — ALWAYS resolves
+    const timer = setTimeout(() => {
+      if (fetchingRef.current) {
+        fetchingRef.current = false;
+        setRole(roleCache.current[userId] || 'student');
+        setRoleLoading(false);
+      }
+    }, 3000);
+
     try {
-      // Используем RPC функцию для обхода рекурсивной RLS политики
-      const { data, error } = await supabase.rpc('get_my_role');
-      if (error) throw error;
-      const userRole = data || 'student';
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      clearTimeout(timer);
+      const userRole = data?.role || 'student';
       roleCache.current[userId] = userRole;
       setRole(userRole);
     } catch (err) {
-      console.error('fetchRole error:', err);
-      if (!role) setRole('student');
+      clearTimeout(timer);
+      setRole('student');
     } finally {
-      setRoleLoading(false);
       fetchingRef.current = false;
+      setRoleLoading(false);
     }
   };
 

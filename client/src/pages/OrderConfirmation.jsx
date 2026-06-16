@@ -43,7 +43,7 @@ export default function OrderConfirmation() {
         table: 'orders',
         filter: 'id=eq.' + id
       }, (payload) => {
-        setOrder(prev => prev ? { ...prev, status: payload.new.status } : null);
+        setOrder(prev => prev ? { ...prev, ...payload.new } : payload.new);
         if (payload.new.status === 'completed') {
           localStorage.removeItem('activeOrderId');
         }
@@ -109,21 +109,23 @@ export default function OrderConfirmation() {
         )}
 
         {/* Kaspi QR */}
-        <div className="bg-gradient-to-br from-primary-50 to-orange-50 rounded-2xl p-6 text-center mb-6">
-          <div className="bg-white rounded-2xl p-4 inline-block mb-4 shadow-md">
-            <img
-              src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=kaspi-payment-placeholder"
-              alt="Kaspi QR"
-              className="w-40 h-40"
-            />
+        {order?.status !== 'completed' && (
+          <div className="bg-gradient-to-br from-primary-50 to-orange-50 rounded-2xl p-6 text-center mb-6">
+            <div className="bg-white rounded-2xl p-4 inline-block mb-4 shadow-md">
+              <img
+                src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=kaspi-payment-placeholder"
+                alt="Kaspi QR"
+                className="w-40 h-40"
+              />
+            </div>
+            <p className="text-gray-700 font-semibold text-sm mb-1">
+              Оплатите <strong>{order?.total_price || '—'} ₸</strong> по QR коду
+            </p>
+            <p className="text-gray-500 text-xs">
+              и покажите чек на кассе
+            </p>
           </div>
-          <p className="text-gray-700 font-semibold text-sm mb-1">
-            Оплатите {order?.total_price || '—'} ₸ по QR коду
-          </p>
-          <p className="text-gray-500 text-xs">
-            и покажите чек на кассе
-          </p>
-        </div>
+        )}
 
         {/* Время ожидания / Статус */}
         <div className={`rounded-2xl p-4 text-center mb-6 flex items-center justify-center gap-3 ${

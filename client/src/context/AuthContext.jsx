@@ -95,9 +95,12 @@ export function AuthProvider({ children }) {
 
         if (event === 'TOKEN_REFRESHED') {
           setUser(session?.user ?? null);
-          if (session?.user?.id && roleCache.current[session.user.id]) {
-            setRole(roleCache.current[session.user.id]);
+          // Берём из кэша — НЕ делаем новый запрос, НЕ сбрасываем роль
+          const cachedRole = roleCache.current[session?.user?.id];
+          if (cachedRole) {
+            setRole(cachedRole);
           }
+          // НЕ вызываем fetchRole здесь вообще
           return;
         }
 

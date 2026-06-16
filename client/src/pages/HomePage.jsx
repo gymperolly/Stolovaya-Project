@@ -27,19 +27,26 @@ export default function HomePage() {
 
   // Проверка активного заказа при загрузке (Bug 1 Fix)
   useEffect(() => {
-    const fetchActiveOrder = async () => {
+    const checkActiveOrder = async () => {
       if (!user) return;
       
       const { data, error } = await supabase
         .from('orders')
-        .select('*')
+        .select('id, status')
         .eq('user_id', user.id)
-        .neq('status', 'completed')
+        .in('status', ['pending', 'ready', 'cooking'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
         
-      if (!error && data) {
+      if (error) {
+        console.error('Active order check error:', error);
+        setActiveOrderId(null);
+        localStorage.removeItem('activeOrderId');
+        return;
+      }
+      
+      if (data) {
         setActiveOrderId(data.id);
         localStorage.setItem('activeOrderId', data.id);
       } else {
@@ -47,7 +54,7 @@ export default function HomePage() {
         localStorage.removeItem('activeOrderId');
       }
     };
-    fetchActiveOrder();
+    checkActiveOrder();
   }, [user]);
 
   useEffect(() => {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 
@@ -111,9 +112,9 @@ export default function StaffDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <a href="/" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+            <Link to="/" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
               🏠 Меню
-            </a>
+            </Link>
             <button onClick={signOut}
               className="text-sm text-red-500 hover:text-red-600 font-medium">
               Выйти

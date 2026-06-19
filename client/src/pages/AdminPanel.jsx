@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import MenuManager from './MenuManager';
@@ -96,12 +97,12 @@ export default function AdminPanel() {
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <a href="/" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+            <Link to="/" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
               🏠 На главную
-            </a>
-            <a href="/staff" className="text-sm text-green-600 hover:text-green-700 font-medium">
+            </Link>
+            <Link to="/staff" className="text-sm text-green-600 hover:text-green-700 font-medium">
               👨‍🍳 Заказы (Staff)
-            </a>
+            </Link>
             <button onClick={signOut} className="text-sm text-red-500 hover:text-red-600 font-medium">
               Выйти
             </button>

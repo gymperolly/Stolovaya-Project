@@ -76,6 +76,9 @@ export default function App() {
             {/* Все остальные маршруты → главная */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <div style={{ textAlign: 'center', fontSize: '12px', color: '#9CA3AF', padding: '12px' }}>
+            version 10.0
+          </div>
         </CartProvider>
       </AuthProvider>
     </BrowserRouter>

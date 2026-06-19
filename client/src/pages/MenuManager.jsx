@@ -32,14 +32,16 @@ export default function MenuManager() {
   const handleDelete = async (id) => {
     if (!window.confirm('Вы уверены, что хотите удалить это блюдо?')) return;
     try {
-      const token = await getAccessToken();
-      const res = await fetch(`/api/admin/menu/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) fetchMenu();
+      const { error } = await supabase
+        .from('menu_items')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      fetchMenu();
     } catch (err) {
       console.error('Ошибка удаления:', err);
+      alert('Ошибка при удалении: ' + err.message);
     }
   };
 

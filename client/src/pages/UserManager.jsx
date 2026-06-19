@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { supabase } from '../lib/supabaseClient';
 
 export default function UserManager() {
   const { getAccessToken } = useAuth();
@@ -10,15 +11,43 @@ export default function UserManager() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const token = await getAccessToken();
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
-      const res = await fetch(`${API_URL}/api/admin/users`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data.users || []);
+      // Get roles
+      const { data: roles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('*');
+
+      if (rolesError) throw rolesError;
+
+      // Get users from orders to get their names and emails
+      const { data: orders, error: ordersError } = await supabase
+        .from('orders')
+        .select('user_id, user_email, user_name');
+
+      if (ordersError) throw ordersError;
+
+      const usersMap = new Map();
+      if (roles) {
+        roles.forEach(r => {
+          usersMap.set(r.user_id, { 
+            id: r.user_id, 
+            email: 'Без email', 
+            name: 'Пользователь', 
+            role: r.role 
+          });
+        });
       }
+
+      if (orders) {
+        orders.forEach(o => {
+          if (usersMap.has(o.user_id)) {
+            const user = usersMap.get(o.user_id);
+            if (o.user_email) user.email = o.user_email;
+            if (o.user_name) user.name = o.user_name;
+          }
+        });
+      }
+
+      setUsers(Array.from(usersMap.values()));
     } catch (err) {
       console.error('Ошибка получения пользователей:', err);
     }
@@ -33,23 +62,17 @@ export default function UserManager() {
     if (!window.confirm(`Вы уверены, что хотите изменить роль на ${newRole}?`)) return;
     setUpdatingId(userId);
     try {
-      const token = await getAccessToken();
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
-      const res = await fetch(`${API_URL}/api/admin/users/${userId}/role`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ role: newRole })
-      });
-      if (res.ok) {
-        setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
-      } else {
-        alert('Ошибка при изменении роли');
-      }
+      const { error } = await supabase
+        .from('user_roles')
+        .update({ role: newRole })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      
+      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
     } catch (err) {
       console.error('Ошибка:', err);
+      alert('Ошибка при изменении роли: ' + err.message);
     }
     setUpdatingId(null);
   };

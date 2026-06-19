@@ -34,7 +34,7 @@ export default function HomePage() {
         .from('orders')
         .select('id, status')
         .eq('user_id', user.id)
-        .in('status', ['pending', 'ready', 'cooking'])
+        .in('status', ['pending', 'ready'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -83,12 +83,13 @@ export default function HomePage() {
     const checkOrderStatus = async () => {
       try {
         const token = await getAccessToken();
-        const res = await fetch(`/api/orders/${activeOrderId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.order.status === 'completed') {
+        const { data: order, error } = await supabase
+          .from('orders')
+          .select('status')
+          .eq('id', activeOrderId)
+          .single();
+        if (!error && order) {
+          if (order.status === 'completed') {
             localStorage.removeItem('activeOrderId');
             setActiveOrderId(null);
           }

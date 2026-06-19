@@ -13,16 +13,16 @@ export default function OrderConfirmation() {
   useEffect(() => {
     const fetchOrder = async () => {
       try {
-        const token = await getAccessToken();
-        const res = await fetch(`/api/orders/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setOrder(data.order);
+        const { data: order, error } = await supabase
+          .from('orders')
+          .select('*, order_items(*)')
+          .eq('id', id)
+          .single();
+        if (!error && order) {
+          setOrder(order);
           // Устанавливаем активный заказ в localStorage
-          if (data.order.status !== 'completed') {
-            localStorage.setItem('activeOrderId', data.order.id);
+          if (order.status !== 'completed') {
+            localStorage.setItem('activeOrderId', order.id);
           } else {
             localStorage.removeItem('activeOrderId');
           }
@@ -131,22 +131,21 @@ export default function OrderConfirmation() {
         <div className={`rounded-2xl p-4 text-center mb-6 flex items-center justify-center gap-3 ${
           order?.status === 'completed' ? 'bg-green-50' :
           order?.status === 'ready' ? 'bg-green-100' :
-          order?.status === 'cooking' ? 'bg-orange-50' : 'bg-primary-50'
+          'bg-primary-50'
         }`}>
           <span className="text-3xl">
             {order?.status === 'completed' ? '🎉' :
              order?.status === 'ready' ? '✅' :
-             order?.status === 'cooking' ? '👨‍🍳' : '⏳'}
+             '⏳'}
           </span>
           <div>
             <p className={`font-bold ${
               order?.status === 'completed' || order?.status === 'ready' ? 'text-green-700' :
-              order?.status === 'cooking' ? 'text-orange-700' : 'text-primary-700'
+              'text-primary-700'
             }`}>
-              {order?.status === 'pending' && 'Ваш заказ принят, ожидайте (~15 минут)'}
-              {order?.status === 'cooking' && 'Ваш заказ готовится...'}
-              {order?.status === 'ready' && 'Ваш заказ готов! Подойдите на кассу'}
-              {order?.status === 'completed' && 'Заказ получен. Спасибо!'}
+              {order?.status === 'pending' && 'Заказ оформлен, ожидайте'}
+              {order?.status === 'ready' && 'Заказ готов! Подойдите на кассу'}
+              {order?.status === 'completed' && 'Заказ выдан. Спасибо!'}
             </p>
             {(order?.status === 'pending' || !order?.status) && <p className="text-primary-600/70 text-xs">Мы сообщим, когда заказ будет готов</p>}
           </div>

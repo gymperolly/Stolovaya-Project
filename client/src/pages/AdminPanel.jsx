@@ -27,15 +27,17 @@ export default function AdminPanel() {
 
   const fetchOrders = async () => {
     try {
-      const token = await getAccessToken();
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
-      const res = await fetch(`${API_URL}/api/admin/orders`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setOrders(data.orders || []);
-      }
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*, order_items(*)')
+        .gte('created_at', today.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setOrders(data || []);
     } catch (err) {
       console.error('Ошибка:', err);
     }

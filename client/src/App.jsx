@@ -7,6 +7,7 @@ import HomePage from './pages/HomePage';
 import OrderConfirmation from './pages/OrderConfirmation';
 import StaffDashboard from './pages/StaffDashboard';
 import AdminPanel from './pages/AdminPanel';
+import ProfilePage from './pages/ProfilePage';
 
 // Protected route component — redirects to /login if not authenticated
 function PrivateRoute({ children }) {
@@ -70,6 +71,13 @@ export default function App() {
                 <RoleGuard allowedRoles={['admin']}>
                   <AdminPanel />
                 </RoleGuard>
+              </PrivateRoute>
+            } />
+
+            {/* Профиль */}
+            <Route path="/profile" element={
+              <PrivateRoute>
+                <ProfilePage />
               </PrivateRoute>
             } />
 

@@ -157,6 +157,9 @@ export default function HomePage() {
                       <p className="font-medium text-gray-800 text-sm truncate">{userName}</p>
                       <p className="text-xs text-gray-400 mt-0.5 capitalize">{role}</p>
                     </div>
+                    <Link to="/profile" className="block w-full text-left px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-xl transition-colors mb-1 font-medium">
+                      👤 Профиль
+                    </Link>
                     {role === 'staff' && (
                       <Link to="/staff" className="block sm:hidden w-full text-left px-3 py-2 text-sm text-green-700 hover:bg-green-50 rounded-xl transition-colors mb-1">
                         👨‍🍳 Панель сотрудника

@@ -39,25 +39,17 @@ export default function UserManager() {
     setUpdatingId(userId)
     
     try {
-      console.log('Updating role:', userId, newRole)
-      
-      const { data, error, status } = await supabase
-        .from('user_roles')
-        .upsert(
-          { user_id: userId, role: newRole },
-          { onConflict: 'user_id' }
-        )
-        .select()
-      
-      console.log('Upsert result:', { data, error, status })
+      const { error } = await supabase
+        .rpc('admin_set_user_role', {
+          target_user_id: userId,
+          new_role: newRole
+        })
       
       if (error) throw error
       
       setUsers(prev => prev.map(u =>
         u.id === userId ? { ...u, role: newRole } : u
       ))
-      
-      console.log('Local state updated')
     } catch (err) {
       console.error('Role update error:', err)
       alert('Ошибка: ' + err.message)

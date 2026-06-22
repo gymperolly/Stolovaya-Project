@@ -11,18 +11,19 @@ export default function UserManager() {
   const fetchUsers = async () => {
     setLoading(true)
     try {
-      const { data: roles, error } = await supabase
-        .rpc('get_all_user_roles')
+      const { data: users, error } = await supabase
+        .rpc('get_all_users_with_roles')
 
       if (error) {
-        console.error('get_all_user_roles error:', error)
+        console.error('get_all_users_with_roles error:', error)
         return
       }
 
-      setUsers(roles.map(r => ({
-        id: r.user_id,
-        shortId: r.user_id.slice(0, 8) + '...',
-        role: r.role
+      setUsers(users.map(u => ({
+        id: u.user_id,
+        email: u.email,
+        name: u.full_name || u.email,
+        role: u.role
       })))
     } finally {
       setLoading(false)
@@ -85,29 +86,31 @@ export default function UserManager() {
           <table className="w-full text-sm text-left">
             <thead>
               <tr className="bg-gray-50 text-gray-500">
-                <th className="px-6 py-4 font-semibold">Имя</th>
-                <th className="px-6 py-4 font-semibold">Email</th>
-                <th className="px-6 py-4 font-semibold">Текущая роль</th>
-                <th className="px-6 py-4 font-semibold text-right">Изменить роль</th>
+                <th className="px-6 py-4 font-semibold">Пользователь</th>
+                <th className="px-6 py-4 font-semibold text-right">Роль</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {users.map(user => (
                 <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-gray-800">{user.shortId || user.name || '—'}</td>
-                  <td className="px-6 py-4 text-gray-500">{user.email || '—'}</td>
-                  <td className="px-6 py-4">{getRoleBadge(user.role)}</td>
+                  <td className="px-6 py-4">
+                    <div className="font-bold text-gray-800 text-base">{user.name || '—'}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">{user.email || '—'}</div>
+                  </td>
                   <td className="px-6 py-4 text-right">
-                    <select
-                      disabled={updatingId === user.id}
-                      value={user.role}
-                      onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                      className="bg-white border border-gray-200 text-gray-700 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-purple-500 outline-none disabled:opacity-50"
-                    >
-                      <option value="student">Student</option>
-                      <option value="staff">Staff</option>
-                      <option value="admin">Admin</option>
-                    </select>
+                    <div className="flex items-center justify-end gap-3">
+                      {getRoleBadge(user.role)}
+                      <select
+                        disabled={updatingId === user.id}
+                        value={user.role}
+                        onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                        className="bg-white border border-gray-200 text-gray-700 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-purple-500 outline-none disabled:opacity-50"
+                      >
+                        <option value="student">Student</option>
+                        <option value="staff">Staff</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </div>
                   </td>
                 </tr>
               ))}

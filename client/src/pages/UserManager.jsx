@@ -43,11 +43,13 @@ export default function UserManager() {
       
       const { data, error, status } = await supabase
         .from('user_roles')
-        .update({ role: newRole })
-        .eq('user_id', userId)
+        .upsert(
+          { user_id: userId, role: newRole },
+          { onConflict: 'user_id' }
+        )
         .select()
       
-      console.log('Update result:', { data, error, status })
+      console.log('Upsert result:', { data, error, status })
       
       if (error) throw error
       

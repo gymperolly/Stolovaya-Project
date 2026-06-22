@@ -11,45 +11,19 @@ export default function UserManager() {
   const fetchUsers = async () => {
     setLoading(true)
     try {
-      // Получаем все роли с user_id
       const { data: roles, error } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-      
-      if (error) throw error
+        .rpc('get_all_user_roles')
 
-      // Получаем информацию о пользователях через auth
-      const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers()
-      
-      if (usersError) throw usersError
-
-      // Объединяем данные
-      const combined = users.map(user => ({
-        id: user.id,
-        email: user.email,
-        name: user.user_metadata?.full_name || user.email,
-        avatar: user.user_metadata?.avatar_url,
-        role: roles.find(r => r.user_id === user.id)?.role || 'student'
-      }))
-
-      setUsers(combined)
-    } catch (err) {
-      console.error('fetchUsers error:', err)
-      
-      // Fallback: если admin.listUsers недоступен,
-      // показывай только тех кто есть в user_roles
-      // через join с profiles если есть, или просто user_id + role
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('user_id, role')
-      
-      if (roles) {
-        setUsers(roles.map(r => ({
-          id: r.user_id,
-          email: r.user_id, // покажем id если email недоступен
-          role: r.role
-        })))
+      if (error) {
+        console.error('get_all_user_roles error:', error)
+        return
       }
+
+      setUsers(roles.map(r => ({
+        id: r.user_id,
+        shortId: r.user_id.slice(0, 8) + '...',
+        role: r.role
+      })))
     } finally {
       setLoading(false)
     }
@@ -120,8 +94,8 @@ export default function UserManager() {
             <tbody className="divide-y divide-gray-50">
               {users.map(user => (
                 <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4 font-medium text-gray-800">{user.name || '—'}</td>
-                  <td className="px-6 py-4 text-gray-500">{user.email}</td>
+                  <td className="px-6 py-4 font-medium text-gray-800">{user.shortId || user.name || '—'}</td>
+                  <td className="px-6 py-4 text-gray-500">{user.email || '—'}</td>
                   <td className="px-6 py-4">{getRoleBadge(user.role)}</td>
                   <td className="px-6 py-4 text-right">
                     <select

@@ -9,72 +9,78 @@ export default function UserManager() {
   const [updatingId, setUpdatingId] = useState(null);
 
   const fetchUsers = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      // Get roles
-      const { data: roles, error: rolesError } = await supabase
+      // Получаем все роли с user_id
+      const { data: roles, error } = await supabase
         .from('user_roles')
-        .select('*');
+        .select('user_id, role')
+      
+      if (error) throw error
 
-      if (rolesError) throw rolesError;
+      // Получаем информацию о пользователях через auth
+      const { data: { users }, error: usersError } = await supabase.auth.admin.listUsers()
+      
+      if (usersError) throw usersError
 
-      // Get users from orders to get their names and emails
-      const { data: orders, error: ordersError } = await supabase
-        .from('orders')
-        .select('user_id, user_email, user_name');
+      // Объединяем данные
+      const combined = users.map(user => ({
+        id: user.id,
+        email: user.email,
+        name: user.user_metadata?.full_name || user.email,
+        avatar: user.user_metadata?.avatar_url,
+        role: roles.find(r => r.user_id === user.id)?.role || 'student'
+      }))
 
-      if (ordersError) throw ordersError;
-
-      const usersMap = new Map();
-      if (roles) {
-        roles.forEach(r => {
-          usersMap.set(r.user_id, { 
-            id: r.user_id, 
-            email: 'Без email', 
-            name: 'Пользователь', 
-            role: r.role 
-          });
-        });
-      }
-
-      if (orders) {
-        orders.forEach(o => {
-          if (usersMap.has(o.user_id)) {
-            const user = usersMap.get(o.user_id);
-            if (o.user_email) user.email = o.user_email;
-            if (o.user_name) user.name = o.user_name;
-          }
-        });
-      }
-
-      setUsers(Array.from(usersMap.values()));
+      setUsers(combined)
     } catch (err) {
-      console.error('Ошибка получения пользователей:', err);
+      console.error('fetchUsers error:', err)
+      
+      // Fallback: если admin.listUsers недоступен,
+      // показывай только тех кто есть в user_roles
+      // через join с profiles если есть, или просто user_id + role
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('user_id, role')
+      
+      if (roles) {
+        setUsers(roles.map(r => ({
+          id: r.user_id,
+          email: r.user_id, // покажем id если email недоступен
+          role: r.role
+        })))
+      }
+    } finally {
+      setLoading(false)
     }
-    setLoading(false);
-  };
+  }
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
   const handleRoleChange = async (userId, newRole) => {
-    if (!window.confirm(`Вы уверены, что хотите изменить роль на ${newRole}?`)) return;
-    setUpdatingId(userId);
+    if (!window.confirm(`Изменить роль на ${newRole}?`)) return
+    setUpdatingId(userId)
+    
     try {
       const { error } = await supabase
         .from('user_roles')
         .update({ role: newRole })
-        .eq('user_id', userId);
-
-      if (error) throw error;
+        .eq('user_id', userId)
       
-      setUsers(users.map(u => u.id === userId ? { ...u, role: newRole } : u));
+      if (error) throw error
+      
+      // Обновляем локальный стейт
+      setUsers(prev => prev.map(u => 
+        u.id === userId ? { ...u, role: newRole } : u
+      ))
     } catch (err) {
-      console.error('Ошибка:', err);
-      alert('Ошибка при изменении роли: ' + err.message);
+      console.error('Role update error:', err)
+      alert('Ошибка при изменении роли: ' + err.message)
+    } finally {
+      setUpdatingId(null)
     }
-    setUpdatingId(null);
   };
 
   const getRoleBadge = (role) => {

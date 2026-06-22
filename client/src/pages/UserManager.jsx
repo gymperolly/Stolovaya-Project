@@ -39,24 +39,30 @@ export default function UserManager() {
     setUpdatingId(userId)
     
     try {
-      const { error } = await supabase
+      console.log('Updating role:', userId, newRole)
+      
+      const { data, error, status } = await supabase
         .from('user_roles')
         .update({ role: newRole })
         .eq('user_id', userId)
+        .select()
+      
+      console.log('Update result:', { data, error, status })
       
       if (error) throw error
       
-      // Обновляем локальный стейт
-      setUsers(prev => prev.map(u => 
+      setUsers(prev => prev.map(u =>
         u.id === userId ? { ...u, role: newRole } : u
       ))
+      
+      console.log('Local state updated')
     } catch (err) {
       console.error('Role update error:', err)
-      alert('Ошибка при изменении роли: ' + err.message)
+      alert('Ошибка: ' + err.message)
     } finally {
       setUpdatingId(null)
     }
-  };
+  }
 
   const getRoleBadge = (role) => {
     switch(role) {
